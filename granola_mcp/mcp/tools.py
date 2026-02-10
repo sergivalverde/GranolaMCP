@@ -52,6 +52,8 @@ class MCPTools:
         """
         if self._meetings_cache is None or force_reload:
             try:
+                if force_reload:
+                    self.parser.reload()
                 meeting_data = self.parser.get_meetings()
                 self._meetings_cache = [Meeting(data) for data in meeting_data]
             except Exception as e:
@@ -158,6 +160,43 @@ class MCPTools:
                     continue
 
         return matching_meetings
+
+    def refresh_cache(self) -> Dict[str, Any]:
+        """
+        Force refresh the meetings cache from the Granola cache file.
+
+        Use this when Granola has synced new meetings but the MCP server
+        hasn't picked them up yet.
+
+        Returns:
+            Dict with cache status and meeting count
+        """
+        try:
+            # Force reload the cache
+            old_count = len(self._meetings_cache) if self._meetings_cache else 0
+            meetings = self._get_meetings(force_reload=True)
+            new_count = len(meetings)
+
+            # Find the most recent meeting date
+            meetings_with_dates = [m for m in meetings if m.start_time]
+            if meetings_with_dates:
+                meetings_with_dates.sort(key=lambda m: m.start_time, reverse=True)
+                latest_meeting = meetings_with_dates[0]
+                latest_date = latest_meeting.start_time.isoformat()
+            else:
+                latest_date = None
+
+            return {
+                "status": "refreshed",
+                "previous_count": old_count,
+                "new_count": new_count,
+                "meetings_added": new_count - old_count,
+                "latest_meeting_date": latest_date,
+                "latest_meeting_title": latest_meeting.title if meetings_with_dates else None
+            }
+
+        except Exception as e:
+            raise MCPToolError(f"Failed to refresh cache: {e}")
 
     def get_recent_meetings(self, count: int = 10) -> Dict[str, Any]:
         """
@@ -940,6 +979,8 @@ class MCPTools:
             return self.export_meeting(**arguments)
         elif tool_name == "analyze_patterns":
             return self.analyze_patterns(**arguments)
+        elif tool_name == "refresh_cache":
+            return self.refresh_cache()
         else:
             raise MCPToolError(f"Unknown tool: {tool_name}")
 
@@ -1153,6 +1194,14 @@ class MCPTools:
                         }
                     },
                     "required": ["pattern_type"]
+                }
+            },
+            {
+                "name": "refresh_cache",
+                "description": "Force refresh the meetings cache from the Granola cache file. Use this when Granola has synced new meetings but they don't appear in queries. Returns the count of meetings before and after refresh.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
                 }
             }
         ]

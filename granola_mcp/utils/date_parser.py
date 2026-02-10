@@ -132,6 +132,10 @@ def get_date_range(start_date: str, end_date: Optional[str] = None, reference_ti
 
     Returns:
         Tuple[datetime.datetime, datetime.datetime]: Start and end datetimes in CST
+
+    Note:
+        When end_date is an absolute date (YYYY-MM-DD), the time is set to 23:59:59
+        to include all meetings on that day. Start date uses 00:00:00.
     """
     if reference_time is None:
         reference_time = datetime.datetime.now(get_cst_timezone())
@@ -142,6 +146,10 @@ def get_date_range(start_date: str, end_date: Optional[str] = None, reference_ti
         end_dt = reference_time
     else:
         end_dt = parse_date(end_date, reference_time)
+        # If end_date was an absolute date (not relative), set time to end of day
+        # to include all meetings on that date
+        if re.match(r'^\d{4}-\d{2}-\d{2}$', end_date.strip()):
+            end_dt = end_dt.replace(hour=23, minute=59, second=59)
 
     # Ensure start is before end
     if start_dt > end_dt:
