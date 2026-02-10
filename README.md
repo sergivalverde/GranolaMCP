@@ -4,6 +4,10 @@ A comprehensive Python library and CLI tool for accessing and analyzing Granola.
 
 ## 📋 Changelog
 
+### 2026-02-10 - Cache Refresh & Date Filtering Fixes
+- **FIX**: `refresh_cache` now actually re-reads the Granola cache file from disk. Previously, the parser's inner cache was never invalidated on refresh, so newly synced meetings were invisible until MCP server restart.
+- **FIX**: Date range queries with absolute `to_date` (e.g., `2026-02-09`) now set time to 23:59:59, so all meetings on that day are included instead of being cut off at 00:00:00.
+
 ### 2025-07-04 - New Collect Command 🎯
 - **NEW**: Added `granola collect` command for exporting your own words from meetings
 - **FEATURE**: Automatically filters microphone audio (your spoken words) vs system audio (what you heard)
